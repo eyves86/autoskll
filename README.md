@@ -7,20 +7,31 @@
 
 ## 装
 
-把 `SKILL.md` 所在目录整个复制到宿主的技能目录即可，无依赖、无构建步骤：
+**通用装法（任何宿主，不需要脚本）**：这个仓库的根目录就是技能本体 —— `SKILL.md` 在最外层，符合 Agent Skill 的通用规范。把整个目录放进你宿主的 skills 目录、目录名叫 `autoskll` 就行：
 
 ```bash
-# Qoder（用户级，所有项目可用）
-cp -r autoskll ~/.qoder/skills/
-
-# 项目级（只对该仓库生效，可提交进仓库共享给团队）
-cp -r autoskll <repo>/.qoder/skills/
-
-# 其他按 Agent Skill 规范读 SKILL.md 的宿主
-cp -r autoskll ~/.claude/skills/
+git clone https://github.com/eyves86/autoskll ~/.claude/skills/autoskll    # Claude Code
+git clone https://github.com/eyves86/autoskll ~/.qoder/skills/autoskll     # Qoder
+git clone https://github.com/eyves86/autoskll ~/.qoder-cn/skills/autoskll  # Qoder 国内版
 ```
 
-技能名取自 `SKILL.md` frontmatter 的 `name: autoskll`，目录名请保持一致。新装后通常需要重开会话才会出现在技能列表里。
+技能名取自 `SKILL.md` frontmatter 的 `name: autoskll`，目录名必须一致，否则宿主加载不到。装完重开会话即可在技能列表里看到它，不用重启 IDE。
+
+**Qoder 脚本装法**（省掉手拷，并且是唯一会注册常驻 hook 的路径；需要 node，Windows 上 node 不在 PATH 就用绝对路径调它）：
+
+```bash
+git clone https://github.com/eyves86/autoskll && cd autoskll
+node install.js                 # 技能模式：等价于上面的手拷
+node install.js --plugin        # 插件模式：再注册常驻 hook，每个会话自动挂载
+node install.js --uninstall     # 撤干净（注册表改前先备份成 .bak-autoskll）
+```
+
+PowerShell 同理（`node install.js`）。`--plugin` 模式必须**重启 Qoder**（插件清单和 MCP 列表只在启动时读取）。
+
+| 形态 | 落点 | 效果 |
+|---|---|---|
+| 技能 | `~/.qoder/skills/autoskll/SKILL.md` | 点名或命中触发词才挂载，不占常驻 token |
+| 插件 | `~/.qoder/plugins/cache/local/autoskll/1.0.0/` | 安装时生成 `skills/autoskll/SKILL.md` + `.qoder-plugin/plugin.json`，并在 `plugins/installed_plugins_v2.json` 与 `settings.json` 的 `enabledPlugins` 里注册 `autoskll@local` |
 
 ## 用
 
@@ -35,30 +46,29 @@ autoskll 帮我把这个模块重构成按租户分表，顺便更新文档
 
 **② 常驻自动挂载**（每个会话都不用点名）
 
-用 `hooks/autoskll-inject.js`，它在每次提问前往上下文塞一小段指针（实测 198 字符 ≈ 60 token），由它决定是否挂 `autoskll`。
+`node install.js --plugin` 会把整包放进插件缓存、生成下面这份 hook 清单并注册插件。**别手改 `settings.json` 加 `hooks` 键** —— 本机实测那里面只有 `mcpServers / enabledPlugins / providers`，常驻 hook 一律走插件清单（taste-skill、ponytail、superpowers 都是这么装的），`install.js` 生成的就是这个形态：
 
 ```json
+// <插件目录>/hooks/qoder-hooks.json
 {
   "hooks": {
     "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": ["/绝对路径/autoskll/hooks/autoskll-inject.js"],
-            "timeout": 10
-          }
-        ]
-      }
+      { "hooks": [ {
+          "type": "command",
+          "command": "<node 绝对路径>",
+          "args": ["<插件目录绝对路径>/hooks/autoskll-inject.js"],
+          "name": "autoskll-inject", "timeout": 10
+      } ] }
     ]
   }
 }
 ```
 
-- 脚本必须把 stdin 读完并留一个兜底退出定时器，否则宿主等不到流结束会卡住整个会话 —— 已在实现里处理。
-- 关掉：新建空文件 `~/.qoder/autoskll-off` 或 `~/.claude/autoskll-off`。
-- 只放指针，不要往 hook 里塞技能正文：正文实测 4857 字符（≈1.5k token），调用时才吃；塞进 hook 就变成每轮固定开销。
+- 两条都是**绝对路径**：command 必须指向真实存在的 node（Windows 上 node 常常不在 PATH，`install.js` 默认取当前运行它的 node，也可 `--node` 指定），脚本路径同理。
+- `install.js` 会往 `installed_plugins_v2.json` 和 `enabledPlugins` 各写一条 `autoskll@local`，改前都留 `.bak-autoskll` 备份；手改这两处同样要重启 Qoder。
+- hook 只塞 198 字符（≈60 token）的指路牌，正文 4857 字符（≈1.5k token）只在真挂载时吃 —— 别把正文搬进 hook，那会变成每轮固定开销。
+- 脚本必须读完 stdin 并留兜底定时器，否则宿主等不到流结束会卡死整个会话；已在实现里处理，改动时别删。
+- 只关注入不卸载：建空文件 `~/.qoder/autoskll-off`（或 `~/.qoder-cn/autoskll-off`、`~/.claude/autoskll-off`）。
 
 ## 它是怎么判断的
 
