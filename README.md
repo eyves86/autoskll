@@ -7,17 +7,38 @@
 
 ## 装
 
-**通用装法（任何宿主，不需要脚本）**：这个仓库的根目录就是技能本体 —— `SKILL.md` 在最外层，符合 Agent Skill 的通用规范。把整个目录放进你宿主的 skills 目录、目录名叫 `autoskll` 就行：
+**① 生态安装器（跨宿主，最省事，需要 node/npm）**
 
 ```bash
-git clone https://github.com/eyves86/autoskll ~/.claude/skills/autoskll    # Claude Code
-git clone https://github.com/eyves86/autoskll ~/.qoder/skills/autoskll     # Qoder
-git clone https://github.com/eyves86/autoskll ~/.qoder-cn/skills/autoskll  # Qoder 国内版
+npx skills@latest add eyves86/autoskll -g -a claude-code   # 换成你的宿主 id 即可
 ```
 
-技能名取自 `SKILL.md` frontmatter 的 `name: autoskll`，目录名必须一致，否则宿主加载不到。装完重开会话即可在技能列表里看到它，不用重启 IDE。
+`-a` 的 id 决定落到哪个用户目录（以下为该 CLI 官方映射，不是本机推测）：
+`claude-code`→`~/.claude/skills/`、`cursor`→`~/.cursor/skills/`、`qoder`→`~/.qoder/skills/`、
+`qoder-cn`→`~/.qoder-cn/skills/`、`trae`→`~/.trae/skills/`、`gemini-cli`→`~/.gemini/skills/`、
+`codex` / `zed` / `roo` / `opencode` / `warp` / `pi`→`~/.agents/skills/`、
+`windsurf`→`~/.codeium/windsurf/skills/`。不带 `-a` 则按它自己的发现规则装到多个宿主。
+先跑 `npx skills add eyves86/autoskll --list` 能看它在这个仓库里发现了哪些技能。
 
-**Qoder 脚本装法**（省掉手拷，并且是唯一会注册常驻 hook 的路径；需要 node，Windows 上 node 不在 PATH 就用绝对路径调它）：
+**② 只有 git、没有 node 的宿主（零依赖，永远可用）**
+
+这个仓库的根目录就是技能本体 —— `SKILL.md` 在最外层，符合 Agent Skill 通用规范，
+也正是上面那个 CLI 的**第一条发现路径**（"Root directory if it contains SKILL.md"）。
+把整个目录 clone 成你宿主 skills 目录下一个名叫 `autoskll` 的子目录即可：
+
+```bash
+git clone --depth=1 https://github.com/eyves86/autoskll ~/.claude/skills/autoskll   # Claude Code
+git clone --depth=1 https://github.com/eyves86/autoskll ~/.cursor/skills/autoskll   # Cursor
+git clone --depth=1 https://github.com/eyves86/autoskll ~/.agents/skills/autoskll   # Codex / Zed / Roo / opencode
+git clone --depth=1 https://github.com/eyves86/autoskll ~/.qoder/skills/autoskll    # Qoder
+git clone --depth=1 https://github.com/eyves86/autoskll ~/.qoder-cn/skills/autoskll # Qoder 国内版
+```
+
+技能名取自 `SKILL.md` frontmatter 的 `name: autoskll`，目录名必须一致，否则宿主加载不到。
+装完重开会话（或跑宿主的 skills reload）即可在技能列表里看到它，不用重启 IDE。
+仓库里**没有**任何宿主专属文件；`hooks/` 与 `install.js` 只对 Qoder 的常驻注入有用，别的宿主直接无视。
+
+**③ Qoder 脚本装法**（省掉手拷，并且是唯一会注册常驻 hook 的路径；需要 node，Windows 上 node 不在 PATH 就用绝对路径调它）：
 
 ```bash
 git clone https://github.com/eyves86/autoskll && cd autoskll
