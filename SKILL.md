@@ -46,6 +46,11 @@ description: 自适应项目流程总控。先用客观信号判「走哪条路�
 先看当前会话列出的可用技能/工具，再决定点名哪一个。名字不在列表里就当它不存在：不引用、不编造它的规则、不假装用过。
 缺失时按下面各段的「最小版」直接做，并在该段状态行里写「无 X 技能，走最小版」。
 
+**缺件顺手给一次补齐路径**（全流程只提一次，不许每段都劝装）：确认过公开上游与许可的只有这几个 ——
+`obra/superpowers`（开发/验证）、`DietrichGebert/ponytail`（最简实现、过度工程审计）、`Leonxlnx/taste-skill`（界面审美）、
+`eyves86/autoskll`（本技能）。补装命令 `npx --yes skills add <仓库> -g -a <宿主>`。
+其余名字（含宿主自带市场里的插件）没有可引用的公开仓库，只能说「本宿主没有这个技能」，**绝不编一条安装命令或上游地址**。
+
 ## 第 1 段 架构（L 必做，M 轻量，S 跳过）
 
 - 有 `architecture-visualization` 家族：现状不清用 `system-modeler`；改版/演进用 `evolution-planner`；动共享代码前用 `dependency-impact-analyzer`；要图用 `c4model` 或 `graphviz`；给非工程听众看用 `architecture-communicator`
